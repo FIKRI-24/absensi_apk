@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../constants/api_constants.dart';
 import '../errors/app_exception.dart';
+import '../models/attendance_model.dart';
 import '../models/outlet_model.dart';
 import '../../features/auth/models/login_response.dart';
 
@@ -76,6 +77,77 @@ class DioClient {
     try {
       final response = await _dio.get(ApiConstants.serverTime);
       return response.data['data'] as Map<String, dynamic>;
+    } on DioException catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  Future<AttendanceModel> checkin({
+    required double latitude,
+    required double longitude,
+    required double accuracy,
+    required bool mockLocationDetected,
+    String? fotoBase64,
+  }) async {
+    try {
+      final response = await _dio.post(
+        ApiConstants.checkin,
+        data: {
+          'latitude': latitude,
+          'longitude': longitude,
+          'accuracy': accuracy,
+          'mock_location_detected': mockLocationDetected,
+          if (fotoBase64 != null) 'foto_base64': fotoBase64,
+        },
+      );
+      return AttendanceModel.fromJson(
+        response.data['data'] as Map<String, dynamic>,
+      );
+    } on DioException catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  Future<AttendanceModel> checkout({
+    required double latitude,
+    required double longitude,
+    required double accuracy,
+    required bool mockLocationDetected,
+    String? fotoBase64,
+  }) async {
+    try {
+      final response = await _dio.post(
+        ApiConstants.checkout,
+        data: {
+          'latitude': latitude,
+          'longitude': longitude,
+          'accuracy': accuracy,
+          'mock_location_detected': mockLocationDetected,
+          if (fotoBase64 != null) 'foto_base64': fotoBase64,
+        },
+      );
+      return AttendanceModel.fromJson(
+        response.data['data'] as Map<String, dynamic>,
+      );
+    } on DioException catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  Future<List<AttendanceModel>> getHistory({String? from, String? to}) async {
+    try {
+      final queryParams = <String, dynamic>{};
+      if (from != null) queryParams['from'] = from;
+      if (to != null) queryParams['to'] = to;
+
+      final response = await _dio.get(
+        ApiConstants.history,
+        queryParameters: queryParams,
+      );
+      final list = response.data['data'] as List<dynamic>;
+      return list
+          .map((item) => AttendanceModel.fromJson(item as Map<String, dynamic>))
+          .toList();
     } on DioException catch (e) {
       throw _handleError(e);
     }
